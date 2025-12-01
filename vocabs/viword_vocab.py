@@ -38,6 +38,12 @@ class ViWordVocab(Vocab):
         self.bos_idx = 1
         self.eos_idx = 2
         self.unk_idx = 3
+    def preprocess_sentence(self, sentence: str) -> List[str]:
+        """
+        Phương thức wrapper để gọi hàm tiền xử lý câu (preprocess_sentence) 
+        được sử dụng trong main.py/generate_summary.
+        """
+        return preprocess_sentence(sentence)
 
     def make_vocab(self, config):
         # Lấy list đường dẫn từ config (Đã sửa ở bước trước)
