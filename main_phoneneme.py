@@ -4,13 +4,13 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import argparse
 import importlib.util 
+# Giả định các import sau là đúng
 from vocab.text_sum_dataset_phoneme import ViTextSumDataset
 from collate_fn.collate_fn_phoneme import ViCollator
 from vocabs.viword_vocab import ViWordVocab 
-from configs.phoneme_config import Config
+from configs.phoneme_config import Config 
 from models.transformer_phoneneme import ViSeq2SeqTransformer
 from losses.phoneneme_loss import PhonemeLoss
-
 
 
 def initialize_components(config: Config) -> tuple:
@@ -97,7 +97,8 @@ def train_model(config: Config, vocab_obj: ViWordVocab, model: nn.Module, criter
         print(f"✅ Kết thúc Epoch {epoch+1} | Average Loss: {avg_loss:.4f}")
         
         # Lưu checkpoint
-        torch.save(model.state_dict(), f"checkpoint_epoch_{epoch+1}.pt")
+        # Sử dụng biến CHECKPOINT_PATH từ config
+        torch.save(model.state_dict(), f"{config.CHECKPOINT_PATH}_{epoch+1}.pt")
 
 
 def evaluate_model(config: Config, vocab_obj: ViWordVocab, model: nn.Module, criterion: nn.Module, data_path: str) -> float:
@@ -150,7 +151,6 @@ def generate_summary(config: Config, vocab_obj: ViWordVocab, model: nn.Module, s
     
     # 2. Khởi tạo đầu vào cho Decoder
     # Bắt đầu với token BOS: (1, 1, 4) -> BOS + 3 PAD
-    # Đang giả định ViWordVocab encode_caption trả về (Length, 4)
     start_token = (vocab_obj.bos_idx, vocab_obj.padding_idx, vocab_obj.padding_idx, vocab_obj.padding_idx)
     tgt_tokens = torch.tensor(start_token).long().unsqueeze(0).unsqueeze(0).to(config.DEVICE) # (1, 1, 4)
 
@@ -181,7 +181,6 @@ def generate_summary(config: Config, vocab_obj: ViWordVocab, model: nn.Module, s
     return summary_text
 
 
-
 def load_config_from_file(config_name: str):
     """Nạp lớp Config từ file Python được chỉ định (ví dụ: 'config_large')."""
     # 1. Xây dựng đường dẫn file: config_name.py
@@ -202,16 +201,19 @@ def main():
     parser.add_argument(
         "--config", 
         type=str, 
-        default="config", # Mặc định là 'config.py'
-        help="Tên file cấu hình (không bao gồm phần mở rộng .py). Ví dụ: 'config_large'"
+        default="configs/phoneme_config", # Giả định đây là giá trị mặc định đúng của bạn
+        help="Tên file cấu hình (bao gồm cả đường dẫn tương đối, không bao gồm phần mở rộng .py). Ví dụ: 'configs/phoneme_config'"
     )
     args = parser.parse_args()
     
     try:
         # Nạp và khởi tạo Config từ tham số dòng lệnh
-        # Sử dụng hàm load_config_from_file đã định nghĩa
         config = load_config_from_file(args.config)
         
+        # Thêm thuộc tính lưu checkpoint mặc định vào config
+        if not hasattr(config, 'CHECKPOINT_PATH'):
+            config.CHECKPOINT_PATH = "checkpoint_epoch" 
+
         # 1. Khởi tạo các thành phần
         vocab_obj, model, criterion, optimizer = initialize_components(config)
         
@@ -221,7 +223,6 @@ def main():
         # 3. Đánh giá mô hình trên tập DEV
         print("\n" + "="*50)
         print("Bắt đầu Đánh giá trên tập DEV")
-        # Giả định config.DEV là đường dẫn từ file config đã nạp
         evaluate_model(config, vocab_obj, model, criterion, config.DEV)
         print("="*50 + "\n")
 
@@ -229,15 +230,19 @@ def main():
         sample_text = "Hôm nay, thời tiết tại thành phố Hồ Chí Minh rất đẹp, nắng vàng rực rỡ và không khí trong lành, rất thích hợp cho các hoạt động ngoài trời."
         print("🔍 Ví dụ Sinh Tóm Tắt (Inference)")
         
+        # Tải checkpoint tốt nhất (hoặc cuối cùng)
         try:
-            # Tải checkpoint. Nếu config.NUM_EPOCHS lỗi, nó sẽ in ra lỗi rõ ràng
-            model.load_state_dict(torch.load(f"checkpoint_epoch_{config.NUM_EPOCHS}.pt"))
+            checkpoint_file = f"{config.CHECKPOINT_PATH}_{config.NUM_EPOCHS}.pt"
+            model.load_state_dict(torch.load(checkpoint_file))
+            print(f"✅ Đã tải checkpoint: {checkpoint_file}")
         except FileNotFoundError:
-            print(f"⚠️ Không tìm thấy file checkpoint_epoch_{config.NUM_EPOCHS}.pt. Dùng model cuối cùng trong bộ nhớ.")
+            # Sửa lỗi: In ra thông báo rõ ràng khi không tìm thấy file
+            print(f"⚠️ Không tìm thấy file checkpoint ({checkpoint_file}). Dùng model cuối cùng trong bộ nhớ.")
         except Exception as e:
-            # Bất kỳ lỗi nào khác
+            # Sửa lỗi: In ra lỗi nếu có vấn đề khác khi tải state_dict
             print(f"❌ Lỗi khi tải checkpoint: {e}")
         
+        # Sửa lỗi: generate_summary không còn bị chặn bởi khối try...except lớn nữa
         summary = generate_summary(config, vocab_obj, model, sample_text)
         print(f"Văn bản gốc: {sample_text}")
         print(f"Tóm tắt: {summary}")
@@ -246,13 +251,18 @@ def main():
         # 5. Đánh giá cuối cùng trên tập TEST
         print("\n" + "!"*50)
         print("TIẾN HÀNH ĐÁNH GIÁ CUỐI CÙNG TRÊN TẬP TEST")
+        # Sửa lỗi: evaluate_model trên TEST không còn bị chặn nữa
         evaluate_model(config, vocab_obj, model, criterion, config.TEST)
         print("!"*50)
 
     except FileNotFoundError as e:
-        print(f"Lỗi: {e}. Vui lòng kiểm tra tên file config và đường dẫn.")
-    except AttributeError:
-        print(f"Lỗi: File config '{args.config}.py' không chứa lớp Config hoặc thiếu thuộc tính cần thiết (ví dụ: TRAIN, DEV, TEST).")
+        # Sửa lỗi: In ra tên file bị thiếu rõ ràng
+        print(f"LỖI KHỞI TẠO: Không tìm thấy file. {e}. Vui lòng kiểm tra tên file config và đường dẫn.")
+    except AttributeError as e: 
+        # Sửa lỗi: In ra lỗi thuộc tính gốc để gỡ lỗi chính xác
+        print(f"LỖI CẤU HÌNH: Thiếu thuộc tính cần thiết trong lớp Config. Lỗi gốc: {e}. Vui lòng kiểm tra file config.")
+    except Exception as e:
+        print(f"LỖI KHÔNG XÁC ĐỊNH: {e}")
 
 
 if __name__ == '__main__':

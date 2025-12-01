@@ -15,7 +15,7 @@ class Config:
     # Biến 'path' dùng để load Dataset hiện tại. 
     # Ban đầu để rỗng, ta sẽ gán giá trị (TRAIN/DEV) trong main.py
     path = "TEST" 
-
+    CHECKPOINT_PATH = "checkpoint_epoch"
     # ===========================
     # 2. TOKENIZER & SPECIAL TOKENS
     # ===========================
