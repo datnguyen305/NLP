@@ -40,6 +40,6 @@ class Config:
     # 4. TRAINING PARAMS
     # ===========================
     BATCH_SIZE = 32
-    NUM_EPOCHS = 10
+    NUM_EPOCHS = 1
     LEARNING_RATE = 0.15
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
