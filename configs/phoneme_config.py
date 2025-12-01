@@ -14,7 +14,7 @@ class Config:
     JSON_PATH = [TRAIN, DEV, TEST]
     # Biến 'path' dùng để load Dataset hiện tại. 
     # Ban đầu để rỗng, ta sẽ gán giá trị (TRAIN/DEV) trong main.py
-    path = "" 
+    path = "TEST" 
 
     # ===========================
     # 2. TOKENIZER & SPECIAL TOKENS
