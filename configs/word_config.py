@@ -54,7 +54,7 @@ class Config:
     # 4. TRAINING PARAMS
     # ===========================
     BATCH_SIZE = 32
-    NUM_EPOCHS = 10
+    NUM_EPOCHS = 1
     
     # Transformer rất nhạy cảm với LR. 0.15 là quá lớn, nên dùng cỡ 1e-4 (0.0001)
     LEARNING_RATE = 0.0001 

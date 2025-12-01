@@ -229,11 +229,14 @@ def main():
         sample_text = "Hôm nay, thời tiết tại thành phố Hồ Chí Minh rất đẹp, nắng vàng rực rỡ và không khí trong lành, rất thích hợp cho các hoạt động ngoài trời."
         print("🔍 Ví dụ Sinh Tóm Tắt (Inference)")
         
-        # NOTE: Nếu muốn đánh giá model tốt nhất, hãy tải checkpoint ở đây:
-        # try:
-        #     model.load_state_dict(torch.load(f"checkpoint_epoch_{config.NUM_EPOCHS}.pt"))
-        # except:
-        #     print("Không thể tải checkpoint. Dùng model đã train xong.")
+        try:
+            # Tải checkpoint. Nếu config.NUM_EPOCHS lỗi, nó sẽ in ra lỗi rõ ràng
+            model.load_state_dict(torch.load(f"checkpoint_epoch_{config.NUM_EPOCHS}.pt"))
+        except FileNotFoundError:
+            print(f"⚠️ Không tìm thấy file checkpoint_epoch_{config.NUM_EPOCHS}.pt. Dùng model cuối cùng trong bộ nhớ.")
+        except Exception as e:
+            # Bất kỳ lỗi nào khác
+            print(f"❌ Lỗi khi tải checkpoint: {e}")
         
         summary = generate_summary(config, vocab_obj, model, sample_text)
         print(f"Văn bản gốc: {sample_text}")
